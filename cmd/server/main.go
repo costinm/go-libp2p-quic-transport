@@ -2,34 +2,50 @@ package main
 
 import (
 	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 
+	libp2pquic "github.com/costinm/go-libp2p-quic-transport"
 	ic "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	tpt "github.com/libp2p/go-libp2p-core/transport"
-	libp2pquic "github.com/libp2p/go-libp2p-quic-transport"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
 func main() {
+	port := "5555"
 	if len(os.Args) != 2 {
 		fmt.Printf("Usage: %s <port>", os.Args[0])
-		return
+	} else {
+		port = os.Args[1]
 	}
-	if err := run(os.Args[1]); err != nil {
+	if err := run(port); err != nil {
 		log.Fatalf(err.Error())
 	}
 }
+
+const key = "CAESQDXW7-QhEhXWdgDUg7AvhlJU2eN-2IzMoDOWl_P271npGnwf4KUMcqufSakCfFi373F8C2HqINHxWalQwk3pVrc="
 
 func run(port string) error {
 	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/udp/%s/quic", port))
 	if err != nil {
 		return err
 	}
-	priv, _, err := ic.GenerateECDSAKeyPair(rand.Reader)
+
+	var priv ic.PrivKey
+	if false {
+		priv, _, _ = ic.GenerateEd25519Key(rand.Reader)
+		kb, _ := priv.Bytes()
+		log.Println(base64.URLEncoding.EncodeToString(kb))
+	} else {
+		kb, _ := base64.URLEncoding.DecodeString(key)
+
+		priv, _ = ic.UnmarshalPrivateKey(kb)
+	}
+	//priv, _, err := ic.GenerateECDSAKeyPair(rand.Reader)
 	if err != nil {
 		return err
 	}
@@ -54,6 +70,9 @@ func run(port string) error {
 			return err
 		}
 		log.Printf("Accepted new connection from %s (%s)\n", conn.RemotePeer(), conn.RemoteMultiaddr())
+		log.Println(conn.RemotePeer().String(), conn.RemoteMultiaddr().String(),
+			conn.RemotePublicKey())
+
 		go func() {
 			if err := handleConn(conn); err != nil {
 				log.Printf("handling conn failed: %s", err.Error())

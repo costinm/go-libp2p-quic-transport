@@ -8,18 +8,23 @@ import (
 	"log"
 	"os"
 
+	libp2pquic "github.com/costinm/go-libp2p-quic-transport"
 	ic "github.com/libp2p/go-libp2p-core/crypto"
 	peer "github.com/libp2p/go-libp2p-core/peer"
-	libp2pquic "github.com/libp2p/go-libp2p-quic-transport"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
 func main() {
+	var addr, pub string
 	if len(os.Args) != 3 {
 		fmt.Printf("Usage: %s <multiaddr> <peer id>", os.Args[0])
-		return
+		addr = "5555"
+		pub = "12D3KooWBbkYafqbHDtmCpp47aj8P16YVfUGtyBeBB1txENTYU7x"
+	} else {
+		addr = os.Args[1]
+		pub = os.Args[2]
 	}
-	if err := run(os.Args[1], os.Args[2]); err != nil {
+	if err := run(addr, pub); err != nil {
 		log.Fatalf(err.Error())
 	}
 }
@@ -54,6 +59,8 @@ func run(raddr string, p string) error {
 		return err
 	}
 	const msg = "Hello world!"
+	log.Println(conn.RemotePeer().String(), conn.RemoteMultiaddr().String(),
+		conn.RemotePublicKey())
 	log.Printf("Sending: %s\n", msg)
 	if _, err := str.Write([]byte(msg)); err != nil {
 		return err
